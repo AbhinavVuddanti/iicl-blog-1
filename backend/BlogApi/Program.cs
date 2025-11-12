@@ -5,57 +5,25 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
+// Services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 
-// CORS
+// CORS: TEMP allow all to unblock immediately
 var corsPolicy = "AllowFrontend";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicy, policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            policy
-                .AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }
-        else
-        {
-            var urlsCsv = builder.Configuration["Cors:FrontendUrls"]; // comma-separated allowed origins
-            var single = builder.Configuration["Cors:FrontendUrl"]; // single origin
-            string[] origins = Array.Empty<string>();
-            if (!string.IsNullOrWhiteSpace(urlsCsv))
-            {
-                origins = urlsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            }
-            else if (!string.IsNullOrWhiteSpace(single))
-            {
-                origins = new[] { single };
-            }
-
-            if (origins.Length > 0)
-            {
-                policy.WithOrigins(origins)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
-            }
-            else
-            {
-                // Safe fallback if misconfigured: allow any origin for now to prevent blocking
-                policy.AllowAnyOrigin()
-                      .AllowAnyHeader()
-                      .AllowAnyMethod();
-            }
-        }
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
-// EF Core DbContext (SQLite for development by default)
+// EF Core DbContext (SQLite or Postgres)
 builder.Services.AddDbContext<BlogContext>(options =>
 {
     var usePostgres = builder.Configuration.GetValue<bool>("UsePostgres");
@@ -68,7 +36,7 @@ builder.Services.AddDbContext<BlogContext>(options =>
         }
         else
         {
-            // Fallback to SQLite if Postgres connection is not configured in production
+            // Fallback to SQLite if Postgres is not configured
             var sqlite = builder.Configuration.GetConnectionString("Sqlite")
                           ?? "Data Source=blog.db";
             options.UseSqlite(sqlite);
@@ -92,7 +60,7 @@ builder.Services.AddDbContext<BlogContext>(options =>
     }
 });
 
-// Rate limiting (fixed window)
+// Rate limiting (basic)
 builder.Services.AddRateLimiter(o =>
 {
     o.AddFixedWindowLimiter("fixed", options =>
@@ -105,7 +73,7 @@ builder.Services.AddRateLimiter(o =>
 
 var app = builder.Build();
 
-// Middleware pipeline
+// Dev-only Swagger and root redirect
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -114,10 +82,12 @@ if (app.Environment.IsDevelopment())
     app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
+// HTTPS redirect only in prod (Render terminates TLS)
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
 app.UseCors(corsPolicy);
 app.UseRateLimiter();
 
@@ -126,27 +96,27 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.MapControllers();
 
-// Ensure database is created/migrated on startup
+// Ensure DB and run migrations
 using (var scope = app.Services.CreateScope())
 {
     try
     {
         if (!app.Environment.IsDevelopment())
         {
-            // Ensure writable directory exists for SQLite default path
+            // Ensure writable directory for SQLite default path
             var dataDir = "/data";
             try { Directory.CreateDirectory(dataDir); } catch { }
         }
         var db = scope.ServiceProvider.GetRequiredService<BlogContext>();
         db.Database.Migrate();
     }
-    catch (Exception)
+    catch
     {
-        // Let ErrorHandlingMiddleware capture runtime errors if any occur later
+        // Swallow; middleware will handle runtime errors.
     }
 }
 
-// Map root for production so service root is not 404
+// Map root in prod to avoid 404
 if (!app.Environment.IsDevelopment())
 {
     app.MapGet("/", () => Results.Json(new { service = "Blog API", status = "ok" }));
