@@ -76,8 +76,18 @@ builder.Services.AddDbContext<BlogContext>(options =>
     }
     else
     {
-        var sqlite = builder.Configuration.GetConnectionString("Sqlite")
-                      ?? "Data Source=blog.db";
+        // Use a writable path in containers for SQLite when in production
+        string sqlite;
+        if (builder.Environment.IsDevelopment())
+        {
+            sqlite = builder.Configuration.GetConnectionString("Sqlite") ?? "Data Source=blog.db";
+        }
+        else
+        {
+            var sqlitePath = builder.Configuration["Sqlite:Path"];
+            if (string.IsNullOrWhiteSpace(sqlitePath)) sqlitePath = "/data/blog.db";
+            sqlite = $"Data Source={sqlitePath}";
+        }
         options.UseSqlite(sqlite);
     }
 });
@@ -121,6 +131,12 @@ using (var scope = app.Services.CreateScope())
 {
     try
     {
+        if (!app.Environment.IsDevelopment())
+        {
+            // Ensure writable directory exists for SQLite default path
+            var dataDir = "/data";
+            try { Directory.CreateDirectory(dataDir); } catch { }
+        }
         var db = scope.ServiceProvider.GetRequiredService<BlogContext>();
         db.Database.Migrate();
     }
