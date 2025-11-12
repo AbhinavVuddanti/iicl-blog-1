@@ -1,0 +1,43 @@
+<mat-card class="mat-elevation-z4" style="max-width: 880px; margin: 0 auto; border-radius: 12px;">
+  <mat-card-header>
+    <mat-card-title>{{ isEdit ? 'Edit Post' : 'New Post' }}</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-form-field appearance="outline" style="width: 100%;">
+    <mat-label>Title</mat-label>
+    <input matInput formControlName="title" placeholder="Enter title" />
+    <mat-error *ngIf="form.get('title')?.hasError('required')">Title is required</mat-error>
+    <mat-error *ngIf="form.get('title')?.hasError('maxlength')">Max 150 characters</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="width: 100%;">
+    <mat-label>Author</mat-label>
+    <input matInput formControlName="author" placeholder="Enter author" />
+    <mat-error *ngIf="form.get('author')?.hasError('required')">Author is required</mat-error>
+    <mat-error *ngIf="form.get('author')?.hasError('maxlength')">Max 100 characters</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="width: 100%;">
+    <mat-label>Content</mat-label>
+    <textarea matInput formControlName="content" rows="10" placeholder="Write your content..."></textarea>
+    <mat-error *ngIf="form.get('content')?.hasError('required')">Content is required</mat-error>
+    <mat-error *ngIf="form.get('content')?.hasError('minlength')">Min 10 characters</mat-error>
+  </mat-form-field>
+
+  <div style="display:flex; align-items:center; gap:12px;">
+    <button mat-raised-button color="primary" type="submit" [disabled]="loading || form.invalid">{{ isEdit ? 'Update' : 'Create' }}</button>
+    <a mat-stroked-button routerLink="/blogs">Cancel</a>
+  </div>
+
+  <div *ngIf="error || validationErrors.length" style="margin-top:12px;">
+    <mat-card class="mat-elevation-z1" style="border-left:4px solid #d32f2f; padding:8px 12px; border-radius:8px; background:#fff3f3;">
+      <div style="color:#b00020; font-weight:500;">{{ error }}</div>
+      <ul style="margin:6px 0 0 16px;">
+        <li *ngFor="let e of validationErrors">{{ e }}</li>
+      </ul>
+    </mat-card>
+  </div>
+</form>
+  </mat-card-content>
+</mat-card>

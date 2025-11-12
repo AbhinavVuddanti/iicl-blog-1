@@ -1,0 +1,55 @@
+<section style="background: linear-gradient(135deg,#e6f0ff,#e9f7f0); padding:48px 16px; margin:-16px -16px 16px -16px;">
+  <div style="max-width: 1024px; margin:0 auto; display:flex; align-items:center; gap:24px;">
+    <div style="flex:1;">
+      <h1 style="margin:0 0 8px; font-size:40px; line-height:1.1; font-weight:700; color:#12355b;">Publish your passions, your way</h1>
+      <p style="margin:0 0 16px; font-size:16px; color:#335c7a;">Create a unique and beautiful blog easily.</p>
+      <a mat-raised-button color="primary" routerLink="/blogs/new"><span class="material-icons" style="vertical-align:middle;margin-right:6px;">edit</span>Create your blog</a>
+    </div>
+    <div style="flex:1; display:none; height:220px; border-radius:16px; background:#fff; box-shadow:0 8px 24px rgba(0,0,0,.08);" class="md:block"></div>
+  </div>
+  <div style="max-width:1024px; margin:16px auto 0; display:flex; align-items:center; gap:12px; color:#335c7a;">
+    <span class="material-icons">auto_awesome</span>
+    <span style="opacity:.8;">Start writing and share your stories with the world.</span>
+  </div>
+</section>
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+  <input [(ngModel)]="search" (keyup.enter)="page=1; load()" placeholder="Search title or content" style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; width:260px;" />
+  <input [(ngModel)]="author" (keyup.enter)="page=1; load()" placeholder="Filter by author" style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; width:200px;" />
+  <button mat-raised-button color="primary" (click)="page=1; load()"><span class="material-icons" style="vertical-align:middle;margin-right:4px;">search</span>Apply</button>
+  <span style="margin-left:auto; opacity:.75;">Total: {{ total }}</span>
+  <a mat-raised-button color="accent" routerLink="/blogs/new"><span class="material-icons" style="vertical-align:middle;margin-right:4px;">add</span>New Post</a>
+</div>
+
+<ng-container *ngIf="!loading && !error; else stateTpl">
+  <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
+    <mat-card *ngFor="let b of items" class="mat-elevation-z2" style="border-radius:12px;">
+      <mat-card-header>
+        <mat-card-title class="text-lg">{{ b.title }}</mat-card-title>
+        <mat-card-subtitle>by {{ b.author }} • {{ b.createdAt | date:'medium' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p style="opacity:.8; max-height:4.8em; overflow:hidden;">{{ b.content }}</p>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <a mat-stroked-button color="primary" [routerLink]="['/blogs', b.id]"><span class="material-icons" style="vertical-align:middle;margin-right:4px;">visibility</span>View</a>
+        <a mat-stroked-button color="accent" [routerLink]="['/blogs', b.id, 'edit']"><span class="material-icons" style="vertical-align:middle;margin-right:4px;">edit</span>Edit</a>
+        <button mat-stroked-button color="warn" (click)="delete(b)"><span class="material-icons" style="vertical-align:middle;margin-right:4px;">delete</span>Delete</button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <div style="display:flex; align-items:center; justify-content:center; gap:16px; margin-top:16px;">
+    <button mat-stroked-button (click)="prevPage()" [disabled]="page===1">Prev</button>
+    <span>Page {{ page }} of {{ totalPages }}</span>
+    <button mat-stroked-button (click)="nextPage()" [disabled]="page * pageSize >= total">Next</button>
+  </div>
+</ng-container>
+
+<ng-template #stateTpl>
+  <div class="py-16 text-center" *ngIf="loading">
+    <mat-icon class="animate-spin align-middle">autorenew</mat-icon>
+    <span class="ml-2">Loading...</span>
+  </div>
+  <div class="py-16 text-center text-red-300" *ngIf="!loading && error">{{ error }}</div>
+</ng-template>
+<p>blog-list works!</p>

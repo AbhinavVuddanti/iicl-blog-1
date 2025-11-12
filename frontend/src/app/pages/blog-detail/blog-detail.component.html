@@ -1,0 +1,21 @@
+<ng-container *ngIf="post as p; else stateTpl">
+  <mat-card class="bg-white/5 border border-white/10">
+    <mat-card-header>
+      <mat-card-title class="text-2xl">{{ p.title }}</mat-card-title>
+      <mat-card-subtitle>by {{ p.author }} • {{ p.createdAt | date:'medium' }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="prose prose-invert max-w-none whitespace-pre-wrap">{{ p.content }}</div>
+    </mat-card-content>
+    <mat-card-actions align="end">
+      <a mat-stroked-button color="primary" [routerLink]="['/blogs', p.id, 'edit']">Edit</a>
+      <button mat-stroked-button color="warn" (click)="delete()">Delete</button>
+      <a mat-button routerLink="/blogs">Back</a>
+    </mat-card-actions>
+  </mat-card>
+</ng-container>
+
+<ng-template #stateTpl>
+  <div class="py-16 text-center" *ngIf="loading">Loading...</div>
+  <div class="py-16 text-center text-red-300" *ngIf="!loading && error">{{ error }}</div>
+</ng-template>
