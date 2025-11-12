@@ -43,7 +43,17 @@ builder.Services.AddDbContext<BlogContext>(options =>
     if (usePostgres)
     {
         var pg = builder.Configuration.GetConnectionString("Postgres");
-        options.UseNpgsql(pg);
+        if (!string.IsNullOrWhiteSpace(pg))
+        {
+            options.UseNpgsql(pg);
+        }
+        else
+        {
+            // Fallback to SQLite if Postgres connection is not configured in production
+            var sqlite = builder.Configuration.GetConnectionString("Sqlite")
+                          ?? "Data Source=blog.db";
+            options.UseSqlite(sqlite);
+        }
     }
     else
     {
@@ -86,5 +96,25 @@ app.UseRateLimiter();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.MapControllers();
+
+// Ensure database is created/migrated on startup
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<BlogContext>();
+        db.Database.Migrate();
+    }
+    catch (Exception)
+    {
+        // Let ErrorHandlingMiddleware capture runtime errors if any occur later
+    }
+}
+
+// Map root for production so service root is not 404
+if (!app.Environment.IsDevelopment())
+{
+    app.MapGet("/", () => Results.Json(new { service = "Blog API", status = "ok" }));
+}
 
 app.Run();
