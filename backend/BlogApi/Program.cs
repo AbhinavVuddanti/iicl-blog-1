@@ -26,12 +26,31 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            policy.WithOrigins(
-                    builder.Configuration["Cors:FrontendUrl"] ?? "http://localhost:4200"
-                )
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials();
+            var urlsCsv = builder.Configuration["Cors:FrontendUrls"]; // comma-separated allowed origins
+            var single = builder.Configuration["Cors:FrontendUrl"]; // single origin
+            string[] origins = Array.Empty<string>();
+            if (!string.IsNullOrWhiteSpace(urlsCsv))
+            {
+                origins = urlsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+            else if (!string.IsNullOrWhiteSpace(single))
+            {
+                origins = new[] { single };
+            }
+
+            if (origins.Length > 0)
+            {
+                policy.WithOrigins(origins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            }
+            else
+            {
+                // Safe fallback if misconfigured: allow any origin for now to prevent blocking
+                policy.AllowAnyOrigin()
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            }
         }
     });
 });
