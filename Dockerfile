@@ -1,30 +1,26 @@
-# Multi-stage Dockerfile for ASP.NET Core 9 Web API (Render compatible)
+# Root-level Dockerfile to build and run backend/BlogApi on Render
 
 # --- Build stage ---
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy csproj and restore first (better layer caching)
-COPY BlogApi.csproj ./
-RUN dotnet restore "BlogApi.csproj"
+# Copy csproj and restore (use correct relative path from repo root)
+COPY backend/BlogApi/BlogApi.csproj backend/BlogApi/
+RUN dotnet restore "backend/BlogApi/BlogApi.csproj"
 
-# Copy the rest of the source and publish
-COPY . .
-RUN dotnet publish "BlogApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Copy the rest of the backend source and publish
+COPY backend/BlogApi/ backend/BlogApi/
+RUN dotnet publish "backend/BlogApi/BlogApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # --- Runtime stage ---
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
-# Copy published output
 COPY --from=build /app/publish .
 
-# Render will provide PORT. We expose 8080 for local runs.
+# Render sets PORT; bind to it via ASPNETCORE_URLS env var in Render settings
+# Example: ASPNETCORE_URLS=http://0.0.0.0:$PORT
+ENV DOTNET_EnableDiagnostics=0
 EXPOSE 8080
 
-# Default URLs can be overridden by setting ASPNETCORE_URLS in Render env vars, e.g.
-# ASPNETCORE_URLS=http://0.0.0.0:$PORT
-ENV DOTNET_EnableDiagnostics=0
-
-# Start the app
 ENTRYPOINT ["dotnet", "BlogApi.dll"]

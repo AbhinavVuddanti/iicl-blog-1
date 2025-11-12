@@ -1,0 +1,14 @@
+# Global dockerignore to keep images small and builds fast
+.git
+.gitignore
+**/bin
+**/obj
+**/node_modules
+**/.angular
+**/dist
+**/out
+**/.vscode
+**/.DS_Store
+**/coverage
+**/npm-debug.log*
+**/yarn-error.log*
